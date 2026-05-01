@@ -1806,7 +1806,7 @@ function PhotoFrame({ position, rotation, onFocus, isFocused }: {
   isFocused: boolean
 }) {
   // Use the uploaded image
-  const texture = useTexture('/siva frame.png');
+  const texture = useTexture('/siva-frame.png');
   const [hovered, setHovered] = useState(false);
 
   useEffect(() => {
@@ -3024,7 +3024,7 @@ export default function App() {
   useEffect(() => {
     if (isDiscoMode) {
       if (!audioRef.current) {
-        audioRef.current = new Audio('/Cat cut dj.mp3');
+        audioRef.current = new Audio('/cat-cut-dj.mp3');
       }
       audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
       const timer = setTimeout(() => {
