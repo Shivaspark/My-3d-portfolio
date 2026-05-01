@@ -184,7 +184,7 @@ Your knowledge base is Siva's resume:
 - Experience: Bhogan mediasoft (App Dev Intern), Novi Tech R&D (AI & Data Science Intern), Coderscave (Full Stack Intern).
 - Skills: Python, ML, SQL, Computer Vision, TensorFlow, React, Firebase, etc.
 - Responsibilities: GDG Lead Organizer, Rotaract Vice President.
-- Achievements: Published paper on Neuralink (2025), Top 5 in "As I Evolve".
+- Achievements: Best Outgoing Student (2026) of the IT Department at Info Institute of Engineering, Published paper on Neuralink (2025), Top 5 in "As I Evolve".
 - Personal: Born 16th May 2004. Hobbies: Writing Rap Songs, Badminton, Football.
 
 RULES:
@@ -1715,7 +1715,7 @@ function VoxelWardrobe({ position, onFocus }: {
   const pBus = useProjectBus();
 
   const booksText = "EDUCATION:\n\n* Bachelor of technology in Information Technology - Info institute of engineering (2022-2026)\n\n* Specialization in AI/ML: Deep-diving into Natural Language Processing (NLP) and Generative AI through the Agentic AI Intensive course.\n\n* Data Science Residency: Currently stationed in Bangalore, the Silicon Valley of India, focusing on advanced Data Science projects and industry applications.";
-  const trophiesText = "ACHIEVEMENTS:\n\n* Exceptional Performer - Ranked top 5 among 250+ students in a professional development program conducted by Rotary club of Coimbatore.\n\n* Best Manager - First prize in best management competetion in conducted in intra college symposium.\n\n* Class Topper - Consistently ranking top position in the Department of IT.\n\n* Badminton - Consistently acquired top position in inter - college badminton competetions.";
+  const trophiesText = "ACHIEVEMENTS:\n\n* Best Outgoing Student (2026) - Awarded to the best outgoing student of the Department of IT at Info Institute of Engineering.\n\n* Exceptional Performer - Ranked top 5 among 250+ students in a professional development program conducted by Rotary club of Coimbatore.\n\n* Best Manager - First prize in best management competetion in conducted in intra college symposium.\n\n* Class Topper - Consistently ranking top position in the Department of IT.\n\n* Badminton - Consistently acquired top position in inter - college badminton competetions.";
   const badgesText = "POSITION OF RESPONSIBILITY:\n\n* Organizer - Google developer groups on campus\n\n* Vice President - Rotaract Club of Info institute of engineering";
 
   return (
@@ -2114,13 +2114,13 @@ function VoxelAvatar({ position, onFocus }: { position: [number, number, number]
           <primitive object={eyeMaterial} attach="material" />
         </mesh>
         
-        {/* Hair */}
-        <mesh position={[0, 0.6, -0.05]} castShadow scale={[0.65, 0.2, 0.7]}>
+        {/* Hair - offset slightly to prevent Z-fighting with head */}
+        <mesh position={[0, 0.602, -0.05]} castShadow scale={[0.66, 0.2, 0.71]}>
           <primitive object={BOX_GEO} attach="geometry" />
           <primitive object={hairMaterial} attach="material" />
         </mesh>
-        {/* Back Hair */}
-        <mesh position={[0, 0.3, -0.2]} castShadow scale={[0.62, 0.4, 0.25]}>
+        {/* Back Hair - offset slightly to prevent Z-fighting */}
+        <mesh position={[0, 0.3, -0.202]} castShadow scale={[0.64, 0.4, 0.26]}>
           <primitive object={BOX_GEO} attach="geometry" />
           <primitive object={hairMaterial} attach="material" />
         </mesh>
@@ -3171,7 +3171,7 @@ export default function App() {
                 : 'px-6 py-3 text-sm sm:text-base border-3'
             }`}
           >
-            [BACK TO ROOM]
+            [ESC]
           </button>
           
           <div className="bg-black/80 px-2 py-1 border border-white/20 shadow-lg">
@@ -3359,10 +3359,10 @@ export default function App() {
           <div className="mb-2 flex flex-col items-center gap-2">
             <div className="flex items-center gap-6 mb-1">
               <div className="flex items-center gap-4 pointer-events-auto">
-                <a href="https://linkedin.com/in/" target="_blank" rel="noreferrer" className="w-8 h-8 rounded-full border border-white/20 bg-black/40 flex items-center justify-center hover:bg-[#0077b5] hover:border-[#0077b5] transition-all hover:scale-110 group">
+                <a href="https://in.linkedin.com/in/siva-shankaran" target="_blank" rel="noreferrer" className="w-8 h-8 rounded-full border border-white/20 bg-black/40 flex items-center justify-center hover:bg-[#0077b5] hover:border-[#0077b5] transition-all hover:scale-110 group" title="LinkedIn">
                   <Linkedin size={14} className="text-white/60 group-hover:text-white" />
                 </a>
-                <a href="https://github.com/" target="_blank" rel="noreferrer" className="w-8 h-8 rounded-full border border-white/20 bg-black/40 flex items-center justify-center hover:bg-[#333] hover:border-[#333] transition-all hover:scale-110 group">
+                <a href="https://github.com/Shivaspark" target="_blank" rel="noreferrer" className="w-8 h-8 rounded-full border border-white/20 bg-black/40 flex items-center justify-center hover:bg-[#333] hover:border-[#333] transition-all hover:scale-110 group" title="GitHub">
                   <Github size={14} className="text-white/60 group-hover:text-white" />
                 </a>
               </div>
@@ -3370,15 +3370,15 @@ export default function App() {
               <h1 className="text-3xl font-bold tracking-[0.2em] uppercase animate-fluid whitespace-nowrap">SIVASHANKARAN</h1>
 
               <div className="flex items-center gap-4 pointer-events-auto">
-                <a href="https://instagram.com/" target="_blank" rel="noreferrer" className="w-8 h-8 rounded-full border border-white/20 bg-black/40 flex items-center justify-center hover:bg-[#e4405f] hover:border-[#e4405f] transition-all hover:scale-110 group">
+                <a href="https://www.instagram.com/shiva_spark_/" target="_blank" rel="noreferrer" className="w-8 h-8 rounded-full border border-white/20 bg-black/40 flex items-center justify-center hover:bg-[#e4405f] hover:border-[#e4405f] transition-all hover:scale-110 group" title="Instagram">
                   <Instagram size={14} className="text-white/60 group-hover:text-white" />
                 </a>
                 <button 
                   onClick={() => {
-                    // Update this URL later when repo is ready
-                    window.open('https://github.com/', '_blank');
+                    window.open('https://github.com/Shivaspark/My-3d-portfolio', '_blank');
                   }}
                   className="w-8 h-8 rounded-full border border-white/20 bg-black/40 flex items-center justify-center hover:bg-[#ffc107] hover:border-[#ffc107] transition-all hover:scale-110 group"
+                  title="Star on GitHub"
                 >
                   <Star size={14} className="text-white/60 group-hover:text-white" />
                 </button>
