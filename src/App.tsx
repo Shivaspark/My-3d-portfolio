@@ -543,7 +543,7 @@ function ComputerScreenContent({
                   S
                 </div>
                 <div className="text-[#00ff41] text-5xl uppercase tracking-[1em] font-black opacity-60 group-hover:opacity-100 animate-pulse mt-12">
-                  CLICK TO UNLOCK_
+                  CLICK TO UNLOCK
                 </div>
               </button>
             </div>
@@ -559,7 +559,7 @@ function ComputerScreenContent({
                   >
                     <div className="text-6xl animate-pulse">🤖</div>
                     <div className="flex flex-col items-start translate-y-[-1px]">
-                      <span className="text-[#00ff41] text-4xl font-black uppercase tracking-[0.1em] group-hover:text-white transition-colors">Chat with Spark AI_</span>
+                      <span className="text-[#00ff41] text-4xl font-black uppercase tracking-[0.1em] group-hover:text-white transition-colors">Chat with Spark AI</span>
                       <span className="text-white/40 text-xl font-bold uppercase tracking-[0.3em]">Ask me anything about Siva</span>
                     </div>
                   </button>
@@ -568,16 +568,16 @@ function ComputerScreenContent({
                 <div 
                   className="flex-1 p-48 flex flex-row flex-wrap gap-48 w-full overflow-y-auto no-scrollbar content-start"
                 >
-                  {folders.filter(f => f.id !== 'spark-ai').map((folder) => (
+                  {folders.map((folder) => (
                     <button
                       key={folder.id}
                       onClick={() => setOpenWindow(folder.id)}
                       className="flex flex-col items-center group cursor-pointer w-[400px]"
                     >
-                      <div className="text-[18rem] mb-12 group-hover:scale-110 transition-transform drop-shadow-[0_40px_80px_rgba(0,0,0,0.8)]">
-                        {folder.icon}
+                      <div className={`text-[18rem] mb-12 group-hover:scale-110 transition-transform drop-shadow-[0_40px_80px_rgba(0,0,0,0.8)] ${folder.id === 'spark-ai' ? 'animate-pulse text-[#00ff41] drop-shadow-[0_0_40px_rgba(0,255,65,1)]' : ''}`}>
+                        {folder.id === 'spark-ai' ? '👾' : folder.icon}
                       </div>
-                      <span className="text-4xl font-black text-white bg-black/80 px-16 py-8 rounded-full group-hover:bg-[#00ff41] group-hover:text-black transition-all whitespace-nowrap border-4 border-white/30">
+                      <span className={`text-4xl font-black text-white bg-black/80 px-16 py-8 rounded-full group-hover:bg-[#00ff41] group-hover:text-black transition-all whitespace-nowrap border-4 border-white/30 ${folder.id === 'spark-ai' ? 'shadow-[0_0_30px_rgba(0,255,65,0.8)]' : ''}`}>
                         {folder.name}
                       </span>
                     </button>
@@ -757,139 +757,6 @@ function ComputerScreenContent({
         </div>
       </Html>
     </group>
-  );
-}
-
-function DinoGame({ onWin, onClose }: { onWin: () => void, onClose: () => void }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [score, setScore] = useState(0);
-  const [gameOver, setGameOver] = useState(false);
-  const gameRef = useRef({
-    dinoY: 0,
-    dinoVelocity: 0,
-    obstacles: [] as { x: number, width: number, height: number }[],
-    frame: 0,
-    isJumping: false,
-    gameActive: true,
-    score: 0
-  });
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code === 'Space' && !gameRef.current.isJumping && gameRef.current.gameActive) {
-        gameRef.current.dinoVelocity = -12;
-        gameRef.current.isJumping = true;
-      }
-      if (e.code === 'Escape') onClose();
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-
-    const loop = () => {
-      if (!gameRef.current.gameActive) return;
-
-      // Update
-      gameRef.current.frame++;
-      
-      // Physics
-      gameRef.current.dinoVelocity += 0.6; // Gravity
-      gameRef.current.dinoY += gameRef.current.dinoVelocity;
-      if (gameRef.current.dinoY > 0) {
-        gameRef.current.dinoY = 0;
-        gameRef.current.dinoVelocity = 0;
-        gameRef.current.isJumping = false;
-      }
-
-      // Obstacles
-      if (gameRef.current.frame % 100 === 0) {
-        gameRef.current.obstacles.push({ x: 800, width: 20, height: 40 + Math.random() * 30 });
-      }
-
-      gameRef.current.obstacles.forEach(obs => {
-        obs.x -= 6;
-      });
-
-      gameRef.current.obstacles = gameRef.current.obstacles.filter(obs => obs.x > -50);
-
-      // Collision
-      const dinoRect = { x: 50, y: 150 + gameRef.current.dinoY, w: 40, h: 40 };
-      gameRef.current.obstacles.forEach(obs => {
-        if (
-          dinoRect.x < obs.x + obs.width &&
-          dinoRect.x + dinoRect.w > obs.x &&
-          dinoRect.y < 200 &&
-          dinoRect.y + dinoRect.h > 200 - obs.height
-        ) {
-          gameRef.current.gameActive = false;
-          setGameOver(true);
-        }
-      });
-
-      // Score
-      gameRef.current.score++;
-      setScore(gameRef.current.score);
-      if (gameRef.current.score === 500) {
-        onWin();
-      }
-
-      // Draw
-      ctx.clearRect(0, 0, 800, 200);
-      
-      // Ground
-      ctx.strokeStyle = 'white';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(0, 190);
-      ctx.lineTo(800, 190);
-      ctx.stroke();
-
-      // Dino (Voxel style)
-      ctx.fillStyle = '#00ff41';
-      ctx.fillRect(dinoRect.x, dinoRect.y, dinoRect.w, dinoRect.h);
-      ctx.strokeStyle = 'black';
-      ctx.strokeRect(dinoRect.x, dinoRect.y, dinoRect.w, dinoRect.h);
-
-      // Obstacles
-      ctx.fillStyle = '#ff4444';
-      gameRef.current.obstacles.forEach(obs => {
-        ctx.fillRect(obs.x, 190 - obs.height, obs.width, obs.height);
-        ctx.strokeRect(obs.x, 190 - obs.height, obs.width, obs.height);
-      });
-
-      requestAnimationFrame(loop);
-    };
-
-    const animId = requestAnimationFrame(loop);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      cancelAnimationFrame(animId);
-    };
-  }, [onWin, onClose]);
-
-  return (
-    <div className="bg-black border-4 border-white p-4 relative">
-      <div className="flex justify-between text-white text-[10px] mb-2 uppercase">
-        <span>Score: {score}</span>
-        <span>[ESC] to exit</span>
-      </div>
-      <canvas ref={canvasRef} width={800} height={200} className="w-full h-auto bg-[#1a1a1a]" />
-      {gameOver && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 text-white">
-          <p className="text-xl mb-4">GAME OVER</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="bg-white text-black px-4 py-2 font-bold text-xs"
-          >
-            RETRY
-          </button>
-        </div>
-      )}
-    </div>
   );
 }
 
@@ -1569,7 +1436,7 @@ function TypewriterOverlay({ onClose }: { onClose: () => void }) {
                   }}
                   className={`w-full bg-[#00ff41] text-black py-6 rounded-xl font-black text-sm hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_0_30px_rgba(0,255,65,0.4)] flex items-center justify-center gap-3 ${!message ? 'opacity-30 pointer-events-none' : ''}`}
                 >
-                  EXECUTE PROTOCOL_
+                  EXECUTE PROTOCOL
                 </a>
                 
                 <button 
@@ -2980,8 +2847,6 @@ export default function App() {
   const [dialogueText, setDialogueText] = useState("Welcome to the Lab. I am Spark AI. How can I help you level up today?");
   const [isTypingComplete, setIsTypingComplete] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [showDino, setShowDino] = useState(false);
-  const [hasWon, setHasWon] = useState(false);
   const [pixaImage, setPixaImage] = useState<string | null>(null);
   const [autoOpenPixa, setAutoOpenPixa] = useState(false);
   const [visitors, setVisitors] = useState(1248);
@@ -3012,20 +2877,7 @@ export default function App() {
     };
     window.addEventListener('keydown', handleGlobalKey);
     return () => window.removeEventListener('keydown', handleGlobalKey);
-  }, [showDialogue, showDino, focusTarget]);
-
-  const handleWin = React.useCallback(() => {
-    setHasWon(true);
-    setShowDino(false);
-    setDialogueText("Achievement Unlocked: Senior Architect! You've earned my secret files.");
-    setShowDialogue(true);
-    setIsTypingComplete(false);
-    setFocusTarget('computer');
-  }, []);
-
-  const handleCloseDino = React.useCallback(() => {
-    setShowDino(false);
-  }, []);
+  }, [showDialogue, focusTarget]);
 
   const handleDeepDive = async () => {
     setIsLoading(true);
@@ -3291,15 +3143,7 @@ export default function App() {
                   animate={{ opacity: 1 }}
                   className="mt-6 flex gap-4"
                 >
-                  {hasWon && (
-                    <a 
-                      href="#" 
-                      onClick={(e) => { e.preventDefault(); alert("Downloading Resume..."); }}
-                      className="bg-[#00ff41] text-black px-4 py-2 hover:bg-white transition-colors font-bold text-[10px] border-b-4 border-r-4 border-green-800 active:border-0 active:translate-y-1 active:translate-x-1"
-                    >
-                      [DOWNLOAD RESUME]
-                    </a>
-                  )}
+                  {/* Achievement content removed */}
                   {/* Buttons removed as per user request */}
                 </motion.div>
               )}
@@ -3307,8 +3151,6 @@ export default function App() {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Dino Game Overlay - Removed */}
 
       {/* Photo Frame Card */}
       <AnimatePresence>
@@ -3351,7 +3193,7 @@ export default function App() {
       </AnimatePresence>
 
       {/* Title and Instructions */}
-      {!showDialogue && !showDino && focusTarget === 'room' && (
+      {!showDialogue && focusTarget === 'room' && (
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-center pointer-events-none">
           <div className="mb-2 flex flex-col items-center gap-2">
             <div className="flex items-center gap-6 mb-1">
