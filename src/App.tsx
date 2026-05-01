@@ -310,44 +310,26 @@ function PixaApp({ onApply }: { onApply: (img: string) => void }) {
     setIsGenerating(true);
     setError(null);
     setShowApplied(false);
-    try {
-      const response = await genAI.models.generateContent({
-        model: 'gemini-2.5-flash-image', 
-        contents: {
-          parts: [
-            {
-              text: `Pixel art of ${prompt}. 8-bit style, high quality, vibrant colors, retro aesthetic, centered composition.`,
-            },
-          ],
-        },
-        config: {
-          imageConfig: {
-            aspectRatio: "16:9",
-          },
-        },
-      });
+    
+    // Fallback to pollinations.ai
+    const enhancedPrompt = `Pixel art of ${prompt}. 8-bit style, high quality, vibrant colors, retro aesthetic, centered composition`;
+    const encodedPrompt = encodeURIComponent(enhancedPrompt);
+    const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=896&height=504&nologo=true&seed=${Math.floor(Math.random() * 100000)}&model=turbo`;
+    
+    // We set the image immediately so the img tag can start loading it natively.
+    setImage(imageUrl);
 
-      let foundImage = false;
-      if (response.candidates?.[0]?.content?.parts) {
-        for (const part of response.candidates[0].content.parts) {
-          if (part.inlineData) {
-            const base64EncodeString = part.inlineData.data;
-            setImage(`data:image/png;base64,${base64EncodeString}`);
-            foundImage = true;
-            break;
-          }
-        }
-      }
-      
-      if (!foundImage) {
-        setError("No image generated. Try a different prompt.");
-      }
-    } catch (err) {
-      console.error("Image generation error:", err);
-      setError("Failed to generate image. The mainframe might be overloaded.");
-    } finally {
+    // We use a separate image object just to track when it finishes loading
+    // so we can turn off the "generating" spinner.
+    const img = new Image();
+    img.onload = () => {
       setIsGenerating(false);
-    }
+    };
+    img.onerror = () => {
+      console.warn("Image load event failed, but it might still display in the DOM.");
+      setIsGenerating(false);
+    };
+    img.src = imageUrl;
   };
 
   return (
@@ -2224,6 +2206,7 @@ function FeatureScreen({ position, rotation, onFocus, pixaImage, onOpenPixa, vis
   const [contentMode, setContentMode] = useState<'stats' | 'tips'>('stats');
   const [currentTip, setCurrentTip] = useState(0);
   const [hovered, setHovered] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
   
   const tickerTips = [
     "TIP: ROTATE THE CUBE TO SEE MY SKILLS",
@@ -2253,6 +2236,10 @@ function FeatureScreen({ position, rotation, onFocus, pixaImage, onOpenPixa, vis
       clearInterval(timeTimer);
       clearInterval(cycleTimer);
     };
+  }, [pixaImage]);
+
+  useEffect(() => {
+    setImageLoaded(false);
   }, [pixaImage]);
 
   return (
@@ -2304,9 +2291,15 @@ function FeatureScreen({ position, rotation, onFocus, pixaImage, onOpenPixa, vis
                 animate={{ opacity: 1 }}
                 className="absolute inset-0 m-0 p-0"
               >
+                {!imageLoaded && (
+                  <div className="absolute inset-0 bg-[#1a1a1a] flex items-center justify-center z-10">
+                    <div className="w-8 h-8 border-4 border-[#00ff41] border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                )}
                 <img 
                   src={pixaImage} 
-                  className="w-full h-full object-fill m-0 p-0" 
+                  onLoad={() => setImageLoaded(true)}
+                  className={`w-full h-full object-fill m-0 p-0 transition-opacity duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`} 
                   style={{ imageRendering: 'pixelated' }}
                   referrerPolicy="no-referrer"
                   alt="Pixa Generation" 
