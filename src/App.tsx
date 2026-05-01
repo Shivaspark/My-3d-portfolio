@@ -2010,7 +2010,9 @@ function StandingLamp({ position }: { position: [number, number, number] }) {
   const handlePull = (e: any) => {
     e.stopPropagation();
     pullY.current = -0.3; // Visual feedback of pull
-    setIsOn(!isOn);
+    const newIsOn = !isOn;
+    setIsOn(newIsOn);
+    window.dispatchEvent(new CustomEvent('lamp-toggle', { detail: newIsOn }));
   };
 
   return (
@@ -2383,7 +2385,69 @@ function FeatureScreen({ position, rotation, onFocus, pixaImage, onOpenPixa, vis
 }
 
 
-function VoxelCat() {
+function DiscoEffect() {
+  const lightRef1 = useRef<THREE.PointLight>(null);
+  const lightRef2 = useRef<THREE.PointLight>(null);
+  const lightRef3 = useRef<THREE.PointLight>(null);
+  const ballRef = useRef<THREE.Group>(null);
+
+  useFrame((state) => {
+    const time = state.clock.elapsedTime;
+    if (lightRef1.current) {
+      lightRef1.current.color.setHSL((time * 0.8) % 1, 1, 0.5);
+      lightRef1.current.position.x = Math.sin(time * 3) * 5;
+    }
+    if (lightRef2.current) {
+      lightRef2.current.color.setHSL((time * 0.8 + 0.33) % 1, 1, 0.5);
+      lightRef2.current.position.z = Math.cos(time * 3) * 5;
+    }
+    if (lightRef3.current) {
+      lightRef3.current.color.setHSL((time * 0.8 + 0.66) % 1, 1, 0.5);
+      lightRef3.current.position.y = 3 + Math.sin(time * 4);
+    }
+    if (ballRef.current) {
+      ballRef.current.rotation.y += 0.05;
+      ballRef.current.rotation.x = Math.sin(time * 0.5) * 0.1;
+    }
+  });
+
+  return (
+    <>
+      <color attach="background" args={["#010101"]} />
+      <fog attach="fog" args={["#000000", 2, 12]} />
+      <pointLight ref={lightRef1} position={[0, 4, 0]} intensity={100} distance={25} />
+      <pointLight ref={lightRef2} position={[0, 4, 0]} intensity={100} distance={25} />
+      <pointLight ref={lightRef3} position={[0, 4, 0]} intensity={100} distance={25} />
+      <ambientLight intensity={0.5} />
+      
+      {/* Disco Ball */}
+      <group ref={ballRef} position={[0, 4.5, 0]}>
+        <mesh position={[0, 0.5, 0]}>
+          <cylinderGeometry args={[0.02, 0.02, 1]} />
+          <meshStandardMaterial color="#444" metalness={1} />
+        </mesh>
+        <mesh>
+          <sphereGeometry args={[0.6, 16, 16]} />
+          <meshStandardMaterial 
+            color="#ffffff" 
+            metalness={1} 
+            roughness={0}
+          />
+        </mesh>
+        {[...Array(6)].map((_, i) => (
+          <mesh key={i} rotation={[Math.random() * Math.PI, Math.random() * Math.PI, 0]}>
+            <boxGeometry args={[1.3, 0.01, 1.3]} />
+            <meshBasicMaterial color="#ffffff" transparent opacity={0.05} />
+          </mesh>
+        ))}
+      </group>
+      
+      <gridHelper args={[30, 30, "#222", "#0a0a0a"]} position={[0, 0, 0]} />
+    </>
+  );
+}
+
+function VoxelCat({ isDiscoMode }: { isDiscoMode?: boolean }) {
   const meshRef = useRef<THREE.Group>(null);
   const leg0 = useRef<THREE.Mesh>(null);
   const leg1 = useRef<THREE.Mesh>(null);
@@ -2398,9 +2462,26 @@ function VoxelCat() {
 
   // Random movement logic
   useFrame((state) => {
-    if (!meshRef.current || frightened) return;
+    if (!meshRef.current) return;
+
+    if (isDiscoMode) {
+      meshRef.current.position.x = THREE.MathUtils.lerp(meshRef.current.position.x, 0, 0.1);
+      meshRef.current.position.z = THREE.MathUtils.lerp(meshRef.current.position.z, 0, 0.1);
+      meshRef.current.position.y = 1.5 + Math.sin(state.clock.elapsedTime * 4) * 0.5;
+      meshRef.current.rotation.y += 0.2;
+      meshRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 2) * 0.2;
+      return;
+    }
+
+    if (frightened) return;
 
     const currentPos = meshRef.current.position;
+    // Return to floor if disco just ended
+    if (currentPos.y > 0.15) {
+      currentPos.y = THREE.MathUtils.lerp(currentPos.y, 0.15, 0.1);
+      meshRef.current.rotation.z = THREE.MathUtils.lerp(meshRef.current.rotation.z, 0, 0.1);
+    }
+
     const distance = currentPos.distanceTo(targetPos);
 
     if (distance < 0.5) {
@@ -2526,7 +2607,10 @@ function VoxelRoom({
   onPixaImageGenerated,
   autoOpenPixa,
   onPixaOpened,
-  visitors
+  visitors,
+  lightToggles,
+  isDiscoMode,
+  onStartMusicRequested
 }: { 
   onFocus: (target: FocusTarget) => void, 
   focusTarget: FocusTarget,
@@ -2534,7 +2618,10 @@ function VoxelRoom({
   onPixaImageGenerated: (img: string) => void,
   autoOpenPixa: boolean,
   onPixaOpened: () => void,
-  visitors: number
+  visitors: number,
+  lightToggles: number,
+  isDiscoMode: boolean,
+  onStartMusicRequested: () => void
 }) {
   const groupRef = useRef<THREE.Group>(null);
 
@@ -2543,71 +2630,84 @@ function VoxelRoom({
       {focusTarget !== 'computer' && (
         <>
           <VoxelFloor />
-          <VoxelWall position={[-5, 2.5, 0]} scale={[0.2, 5, 10]} />
-          <VoxelWall position={[0, 2.5, -5]} scale={[10, 5, 0.2]} />
+          {!isDiscoMode && (
+            <>
+              <VoxelWall position={[-5, 2.5, 0]} scale={[0.2, 5, 10]} />
+              <VoxelWall position={[0, 2.5, -5]} scale={[10, 5, 0.2]} />
+            </>
+          )}
 
           {/* Furniture */}
-          <VoxelWardrobe 
-            position={[-4.4, 0, -2]} 
-            onFocus={(target, text) => {
-              onFocus(target);
-              if (target !== 'resume') {
-                window.dispatchEvent(new CustomEvent('spark-dialogue', { detail: text }));
-              }
-            }}
-          />
-          <VoxelComputerDesk position={[2, 0, -4.1]} />
-          <VoxelChair position={[1.5, 0, -2]} />
-          <StandingLamp position={[-1.5, 0, -4.1]} />
-          <VoxelCat />
-          <VoxelAvatar 
-            position={[0, 0, 0]} 
-            onFocus={() => {
-              onFocus('avatar');
-            }}
-          />
+          {!isDiscoMode && (
+            <>
+              <VoxelWardrobe 
+                position={[-4.4, 0, -2]} 
+                onFocus={(target, text) => {
+                  onFocus(target);
+                  if (target !== 'resume') {
+                    window.dispatchEvent(new CustomEvent('spark-dialogue', { detail: text }));
+                  }
+                }}
+              />
+              <VoxelComputerDesk position={[2, 0, -4.1]} />
+              <VoxelChair position={[1.5, 0, -2]} />
+              <StandingLamp position={[-1.5, 0, -4.1]} />
+            </>
+          )}
+
+          <VoxelCat isDiscoMode={isDiscoMode} />
           
-          {/* Photo Frame on Left Wall */}
-          <PhotoFrame 
-            position={[-4.85, 2.5, 1]} 
-            rotation={[0, Math.PI / 2, 0]} 
-            onFocus={() => onFocus('photo-frame')}
-            isFocused={focusTarget === 'photo-frame'}
-          />
+          {!isDiscoMode && (
+            <>
+              <VoxelAvatar 
+                position={[0, 0, 0]} 
+                onFocus={() => {
+                  onFocus('avatar');
+                }}
+              />
+              
+              <PhotoFrame 
+                position={[-4.85, 2.5, 1]} 
+                rotation={[0, Math.PI / 2, 0]} 
+                onFocus={() => onFocus('photo-frame')}
+                isFocused={focusTarget === 'photo-frame'}
+              />
 
-          {/* Side Table with Typewriter */}
-          <VoxelTypewriter 
-            position={[-4.2, 1.1, 3.5]} 
-            onFocus={() => onFocus('typewriter')}
-          />
+              <VoxelTypewriter 
+                position={[-4.2, 1.1, 3.5]} 
+                onFocus={() => onFocus('typewriter')}
+              />
 
-          {/* Dynamic LED Feature Screen above the computer */}
-            <FeatureScreen 
-              position={[1.5, 3.4, -4.85]} 
-              rotation={[0, 0, 0]} 
-              onFocus={() => onFocus('feature-screen')}
-              pixaImage={pixaImage}
-              onOpenPixa={() => onFocus('pixa-app-trigger' as any)}
-              visitors={visitors}
-            />
+              <FeatureScreen 
+                position={[1.5, 3.4, -4.85]} 
+                rotation={[0, 0, 0]} 
+                onFocus={() => onFocus('feature-screen')}
+                pixaImage={pixaImage}
+                onOpenPixa={() => onFocus('pixa-app-trigger' as any)}
+                visitors={visitors}
+              />
+            </>
+          )}
         </>
       )}
       
       {/* Terminal on Desk */}
-      <group position={[2, 1.1, -4.1]}>
-        <ComputerTerminal 
-          onFocus={() => onFocus('computer')} 
-          isFocused={focusTarget === 'computer'}
-          canInteract={focusTarget === 'room' || focusTarget === 'computer'}
-          pixaImage={pixaImage}
-          onPixaImageGenerated={onPixaImageGenerated}
-          autoOpenPixa={autoOpenPixa}
-          onPixaOpened={onPixaOpened}
-          onTypewriterFocus={() => onFocus('typewriter')}
-        />
-      </group>
+      {!isDiscoMode && (
+        <group position={[2, 1.1, -4.1]}>
+          <ComputerTerminal 
+            onFocus={() => onFocus('computer')} 
+            isFocused={focusTarget === 'computer'}
+            canInteract={focusTarget === 'room' || focusTarget === 'computer'}
+            pixaImage={pixaImage}
+            onPixaImageGenerated={onPixaImageGenerated}
+            autoOpenPixa={autoOpenPixa}
+            onPixaOpened={onPixaOpened}
+            onTypewriterFocus={() => onFocus('typewriter')}
+          />
+        </group>
+      )}
 
-      {focusTarget !== 'computer' && (
+      {focusTarget !== 'computer' && !isDiscoMode && (
         <>
           <RubiksCube 
             position={[3, 1.4, -4.1]} 
@@ -2615,8 +2715,66 @@ function VoxelRoom({
             isFocused={focusTarget === 'project-rubiks'}
           />
 
+          {/* Hidden Easter Egg: Golden Disc only visible after 2 on/off cycles (4 toggles) */}
+          {lightToggles >= 4 && (
+            <VoxelGoldenDisc 
+              position={[-4.2, 0.5, 3.2]} 
+              onDiscover={() => {
+                window.dispatchEvent(new CustomEvent('spark-dialogue', { 
+                  detail: "You found the Master Key! Initializing Platinum Groove Protocol... [Click 'START THE MUSIC' to proceed]" 
+                }));
+                onStartMusicRequested();
+              }} 
+            />
+          )}
         </>
       )}
+
+      {/* Disco Lights during Cutscene */}
+      {isDiscoMode && (
+        <DiscoEffect />
+      )}
+    </group>
+  );
+}
+
+function VoxelGoldenDisc({ position, onDiscover }: { position: [number, number, number], onDiscover: () => void }) {
+  const [hovered, setHovered] = useState(false);
+  const groupRef = useRef<THREE.Group>(null);
+  
+  useFrame((state) => {
+    if (groupRef.current) {
+      groupRef.current.position.y = position[1] + Math.sin(state.clock.elapsedTime * 2) * 0.05;
+      groupRef.current.rotation.y += 0.01;
+    }
+  });
+  
+  return (
+    <group 
+      ref={groupRef}
+      position={position} 
+      onPointerOver={(e) => { e.stopPropagation(); setHovered(true); }} 
+      onPointerOut={() => setHovered(false)}
+      onClick={(e) => {
+        e.stopPropagation();
+        onDiscover();
+      }}
+    >
+      {/* Small glowing gold disc */}
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.15, 0.15, 0.02, 32]} />
+        <meshStandardMaterial 
+          color={hovered ? "#00ff41" : "#ffcc00"} 
+          metalness={0.9} 
+          roughness={0.1} 
+          emissive={hovered ? "#00ff41" : "#ffcc00"} 
+          emissiveIntensity={hovered ? 1 : 0.2} 
+        />
+      </mesh>
+      <mesh position={[0, 0, 0.01]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.04, 0.04, 0.03, 16]} />
+        <meshStandardMaterial color="#000000" />
+      </mesh>
     </group>
   );
 }
@@ -2850,6 +3008,37 @@ export default function App() {
   const [pixaImage, setPixaImage] = useState<string | null>(null);
   const [autoOpenPixa, setAutoOpenPixa] = useState(false);
   const [visitors, setVisitors] = useState(1248);
+  const [lightToggles, setLightToggles] = useState(0);
+  const [isDiscoMode, setIsDiscoMode] = useState(false);
+  const [showStartMusic, setShowStartMusic] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    const handleLampToggle = () => {
+      setLightToggles(prev => prev + 1);
+    };
+    window.addEventListener('lamp-toggle', handleLampToggle);
+    return () => window.removeEventListener('lamp-toggle', handleLampToggle);
+  }, []);
+
+  useEffect(() => {
+    if (isDiscoMode) {
+      if (!audioRef.current) {
+        audioRef.current = new Audio('/Cat cut dj.mp3');
+      }
+      audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
+      const timer = setTimeout(() => {
+        setIsDiscoMode(false);
+        audioRef.current?.pause();
+        if (audioRef.current) audioRef.current.currentTime = 0;
+      }, 20000);
+      return () => {
+        clearTimeout(timer);
+        audioRef.current?.pause();
+        if (audioRef.current) audioRef.current.currentTime = 0;
+      };
+    }
+  }, [isDiscoMode]);
 
   useEffect(() => {
     const handleTypewriterFocus = () => setFocusTarget('typewriter');
@@ -2987,6 +3176,9 @@ export default function App() {
             autoOpenPixa={autoOpenPixa}
             onPixaOpened={() => setAutoOpenPixa(false)}
             visitors={visitors}
+            lightToggles={lightToggles}
+            isDiscoMode={isDiscoMode}
+            onStartMusicRequested={() => setShowStartMusic(true)}
           />
         </React.Suspense>
 
@@ -3186,6 +3378,37 @@ export default function App() {
                 className="w-full bg-[#00ff41] text-black py-3 px-4 font-bold text-xs uppercase tracking-widest hover:bg-white transition-colors border-b-4 border-r-4 border-green-900 active:border-0 active:translate-y-1 active:translate-x-1"
               >
                 Access my files to know more
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Start Music Overlay for Easter Egg */}
+      <AnimatePresence>
+        {showStartMusic && !isDiscoMode && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[200] flex flex-col items-center gap-6"
+          >
+            <div className="bg-black/90 p-8 border-4 border-[#00ff41] shadow-[0_0_50px_rgba(0,255,65,0.5)] flex flex-col items-center gap-4">
+              <span className="text-[#00ff41] text-2xl font-black uppercase tracking-[0.2em] animate-pulse">PLATINUM GROOVE UNLOCKED!</span>
+              <button 
+                onClick={() => {
+                  setIsDiscoMode(true);
+                  setShowStartMusic(false);
+                }}
+                className="bg-[#00ff41] text-black px-12 py-4 text-xl font-black rounded-full hover:bg-white transition-all hover:scale-110 active:scale-95 shadow-[0_0_30px_rgba(0,255,65,0.8)]"
+              >
+                START THE MUSIC
+              </button>
+              <button 
+                onClick={() => setShowStartMusic(false)}
+                className="text-white/40 text-xs uppercase hover:text-white transition-colors"
+              >
+                [CANCEL]
               </button>
             </div>
           </motion.div>
