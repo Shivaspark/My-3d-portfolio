@@ -33,84 +33,96 @@ type FocusTarget = 'room' | 'computer' | 'avatar' | 'feature-screen' | 'project-
 // --- Constants & Shared Geometries ---
 const BOX_GEO = new THREE.BoxGeometry(1, 1, 1);
 
-function CameraController({ target }: { target: FocusTarget }) {
+// Hook: tracks viewport width and updates on resize (works with DevTools emulation)
+function useIsMobile(breakpoint = 768) {
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < breakpoint);
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < breakpoint);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, [breakpoint]);
+  return isMobile;
+}
+
+function CameraController({ target, isMobile }: { target: FocusTarget; isMobile: boolean }) {
   const tPos = useMemo(() => new THREE.Vector3(), []);
   const tLook = useMemo(() => new THREE.Vector3(), []);
   const lastTarget = useRef(target);
+  // Mobile zoom factor: 0.42x — fits elements inside narrow portrait viewport
+  const mf = 0.42;
 
   useFrame((state) => {
-    // Faster transition when jumping between focused objects
     const isJumping = lastTarget.current !== 'room' && target !== 'room' && lastTarget.current !== target;
-    const step = isJumping ? 0.18 : 0.1; 
+    const step = isJumping ? 0.18 : 0.1;
     lastTarget.current = target;
-    
-    let targetZoom = 60;
+
+    let targetZoom = isMobile ? 38 : 60;
 
     switch (target) {
       case 'computer':
-        tPos.set(2, 2.1, -1.0); 
+        tPos.set(2, 2.1, -1.0);
         tLook.set(2, 2.1, -4.11);
-        targetZoom = 450; 
+        targetZoom = isMobile ? Math.round(450 * mf) : 450;
         break;
       case 'avatar':
-        tPos.set(4, 2.5, 4); 
+        tPos.set(4, 2.5, 4);
         tLook.set(0, 2.5, 0);
-        targetZoom = 250; 
+        targetZoom = isMobile ? Math.round(250 * mf) : 250;
         break;
       case 'feature-screen':
-        tPos.set(1.5, 3.4, -1.0); 
+        tPos.set(1.5, 3.4, -1.0);
         tLook.set(1.5, 3.4, -4.86);
-        targetZoom = 400; 
+        targetZoom = isMobile ? Math.round(400 * mf) : 400;
         break;
       case 'project-neural':
         tPos.set(-1, 4, 2);
         tLook.set(-3.8, 1.85, -1.5);
-        targetZoom = 200;
+        targetZoom = isMobile ? Math.round(200 * mf) : 200;
         break;
       case 'project-physics':
         tPos.set(-1, 5, 1);
         tLook.set(-3.8, 2.85, -2.5);
-        targetZoom = 200;
+        targetZoom = isMobile ? Math.round(200 * mf) : 200;
         break;
       case 'project-rubiks':
-        tPos.set(3, 1.4, -1.0); 
+        tPos.set(3, 1.4, -1.0);
         tLook.set(3, 1.4, -4.1);
-        targetZoom = 600; 
+        targetZoom = isMobile ? Math.round(600 * mf) : 600;
         break;
       case 'photo-frame':
-        tPos.set(-1.5, 2.5, 1); 
+        tPos.set(-1.5, 2.5, 1);
         tLook.set(-4.85, 2.5, 1);
-        targetZoom = 350; 
+        targetZoom = isMobile ? Math.round(350 * mf) : 350;
         break;
       case 'wardrobe-books':
         tPos.set(-1.5, 1.5, -2);
         tLook.set(-4.85, 1.5, -2);
-        targetZoom = 300;
+        targetZoom = isMobile ? Math.round(300 * mf) : 300;
         break;
       case 'wardrobe-trophies':
         tPos.set(-1.5, 2.5, -2);
         tLook.set(-4.85, 2.5, -2);
-        targetZoom = 300;
+        targetZoom = isMobile ? Math.round(300 * mf) : 300;
         break;
       case 'wardrobe-badges':
         tPos.set(-1.5, 0.5, -2);
         tLook.set(-4.85, 0.5, -2);
-        targetZoom = 300;
+        targetZoom = isMobile ? Math.round(300 * mf) : 300;
         break;
       case 'resume':
-        tPos.set(-4.4, 1.8, 2.0); 
+        tPos.set(-4.4, 1.8, 2.0);
         tLook.set(-4.4, 1.8, -0.5);
-        targetZoom = 350; 
+        targetZoom = isMobile ? Math.round(350 * mf) : 350;
         break;
       case 'typewriter':
-        tPos.set(-2, 2.3, 3.5); 
+        tPos.set(-2, 2.3, 3.5);
         tLook.set(-5, 1.3, 3.5);
-        targetZoom = 350; 
+        targetZoom = isMobile ? Math.round(350 * mf) : 350;
         break;
       default:
         tPos.set(10, 10, 10);
         tLook.set(0, 0, 0);
-        targetZoom = 60;
+        targetZoom = isMobile ? 38 : 60;
     }
 
     state.camera.position.lerp(tPos, step);
@@ -118,7 +130,6 @@ function CameraController({ target }: { target: FocusTarget }) {
       state.camera.zoom = THREE.MathUtils.lerp(state.camera.zoom, targetZoom, step);
       state.camera.updateProjectionMatrix();
     }
-    
     // @ts-ignore
     if (state.controls) {
       // @ts-ignore
@@ -3106,15 +3117,17 @@ export default function App() {
     };
   }, []);
 
+  const isMobile = useIsMobile();
+
   return (
     <div className="w-full h-screen bg-[#05050a] overflow-hidden relative font-pixel">
       {/* 3D Scene */}
       <Canvas shadows dpr={1} gl={{ antialias: false, powerPreference: "high-performance" }}>
-        <CameraController target={focusTarget} />
+        <CameraController target={focusTarget} isMobile={isMobile} />
         <OrthographicCamera 
           makeDefault 
           position={[10, 10, 10]} 
-          zoom={60} 
+          zoom={isMobile ? 38 : 60} 
           near={-100} 
           far={1000} 
         />
@@ -3193,7 +3206,7 @@ export default function App() {
 
       {/* Back Button */}
       {focusTarget !== 'room' && (
-        <div className="absolute top-4 right-4 flex flex-col items-end gap-2 z-[60]">
+        <div className="absolute top-2 right-2 sm:top-4 sm:right-4 flex flex-col items-end gap-1 sm:gap-2 z-[60]">
           <button
             onClick={() => {
               setFocusTarget('room');
@@ -3202,14 +3215,14 @@ export default function App() {
             className={`bg-white text-black font-black border-2 border-black shadow-[4px_4px_0_0_rgba(0,0,0,0.3)] active:shadow-none active:translate-y-1 active:translate-x-1 transition-all uppercase tracking-tighter ${
               (focusTarget === 'computer' || focusTarget === 'feature-screen') 
                 ? 'px-2 py-0.5 text-[8px]' 
-                : 'px-6 py-3 text-sm sm:text-base border-3'
+                : 'px-3 py-1.5 text-[10px] sm:px-6 sm:py-3 sm:text-sm'
             }`}
           >
             [ESC]
           </button>
           
-          <div className="bg-black/80 px-2 py-1 border border-white/20 shadow-lg">
-            <span className="text-[#00ff41] text-[8px] font-black tracking-widest uppercase">
+          <div className="bg-black/80 px-1.5 py-0.5 sm:px-2 sm:py-1 border border-white/20 shadow-lg">
+            <span className="text-[#00ff41] text-[7px] sm:text-[8px] font-black tracking-widest uppercase">
               VISITORS: {visitors}
             </span>
           </div>
@@ -3219,34 +3232,34 @@ export default function App() {
       {/* Rubik's Cube Navigation Buttons */}
       {focusTarget === 'project-rubiks' && (
         <div className="absolute inset-0 pointer-events-none z-[70]">
-          <div className="absolute bottom-32 right-12 flex flex-col items-center gap-4 pointer-events-auto">
+          <div className="absolute bottom-20 sm:bottom-32 right-3 sm:right-12 flex flex-col items-center gap-2 sm:gap-4 pointer-events-auto">
             <button 
               onClick={(e) => {
                 e.stopPropagation();
                 window.dispatchEvent(new CustomEvent('rubiks-rotate', { detail: { axis: 'x', direction: -1 } }));
               }}
-              className="w-12 h-12 bg-black/80 hover:bg-[#00ff41]/40 border-2 border-white/20 rounded flex items-center justify-center transition-all active:scale-95 group"
+              className="w-9 h-9 sm:w-12 sm:h-12 bg-black/80 hover:bg-[#00ff41]/40 border-2 border-white/20 rounded flex items-center justify-center transition-all active:scale-95 group"
             >
-              <ChevronUp className="w-8 h-8 text-white group-hover:text-[#00ff41]" />
+              <ChevronUp className="w-5 h-5 sm:w-8 sm:h-8 text-white group-hover:text-[#00ff41]" />
             </button>
-            <div className="flex gap-4">
+            <div className="flex gap-2 sm:gap-4">
               <button 
                 onClick={(e) => {
                   e.stopPropagation();
                   window.dispatchEvent(new CustomEvent('rubiks-rotate', { detail: { axis: 'y', direction: 1 } }));
                 }}
-                className="w-12 h-12 bg-black/80 hover:bg-[#00ff41]/40 border-2 border-white/20 rounded flex items-center justify-center transition-all active:scale-95 group"
+                className="w-9 h-9 sm:w-12 sm:h-12 bg-black/80 hover:bg-[#00ff41]/40 border-2 border-white/20 rounded flex items-center justify-center transition-all active:scale-95 group"
               >
-                <ChevronLeft className="w-8 h-8 text-white group-hover:text-[#00ff41]" />
+                <ChevronLeft className="w-5 h-5 sm:w-8 sm:h-8 text-white group-hover:text-[#00ff41]" />
               </button>
               <button 
                 onClick={(e) => {
                   e.stopPropagation();
                   window.dispatchEvent(new CustomEvent('rubiks-rotate', { detail: { axis: 'y', direction: -1 } }));
                 }}
-                className="w-12 h-12 bg-black/80 hover:bg-[#00ff41]/40 border-2 border-white/20 rounded flex items-center justify-center transition-all active:scale-95 group"
+                className="w-9 h-9 sm:w-12 sm:h-12 bg-black/80 hover:bg-[#00ff41]/40 border-2 border-white/20 rounded flex items-center justify-center transition-all active:scale-95 group"
               >
-                <ChevronRight className="w-8 h-8 text-white group-hover:text-[#00ff41]" />
+                <ChevronRight className="w-5 h-5 sm:w-8 sm:h-8 text-white group-hover:text-[#00ff41]" />
               </button>
             </div>
             <button 
@@ -3254,11 +3267,11 @@ export default function App() {
                 e.stopPropagation();
                 window.dispatchEvent(new CustomEvent('rubiks-rotate', { detail: { axis: 'x', direction: 1 } }));
               }}
-              className="w-12 h-12 bg-black/80 hover:bg-[#00ff41]/40 border-2 border-white/20 rounded flex items-center justify-center transition-all active:scale-95 group"
+              className="w-9 h-9 sm:w-12 sm:h-12 bg-black/80 hover:bg-[#00ff41]/40 border-2 border-white/20 rounded flex items-center justify-center transition-all active:scale-95 group"
             >
-              <ChevronDown className="w-8 h-8 text-white group-hover:text-[#00ff41]" />
+              <ChevronDown className="w-5 h-5 sm:w-8 sm:h-8 text-white group-hover:text-[#00ff41]" />
             </button>
-            <p className="text-[#00ff41] text-[8px] mt-2 font-bold uppercase tracking-widest opacity-60">Rotate Cube</p>
+            <p className="text-[#00ff41] text-[7px] sm:text-[8px] mt-1 sm:mt-2 font-bold uppercase tracking-widest opacity-60">Rotate Cube</p>
           </div>
         </div>
       )}
@@ -3274,13 +3287,13 @@ export default function App() {
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            className="absolute top-24 left-8 text-left pointer-events-none z-[90]"
+            className="absolute top-16 sm:top-24 left-2 sm:left-8 text-left pointer-events-none z-[90]"
           >
-            <div className={`bg-black/90 border-2 p-4 inline-block shadow-[8px_8px_0px_#00000050] ${activeProject.title.includes("Files") ? 'border-[#00ff41]' : 'border-[#4a90e2]'}`}>
-              <h2 className={`text-xs font-bold uppercase mb-1 ${activeProject.title.includes("Files") ? 'text-[#00ff41]' : 'text-[#4a90e2]'}`}>
+            <div className={`bg-black/90 border-2 p-2 sm:p-4 inline-block shadow-[8px_8px_0px_#00000050] ${activeProject.title.includes("Files") ? 'border-[#00ff41]' : 'border-[#4a90e2]'}`}>
+              <h2 className={`text-[9px] sm:text-xs font-bold uppercase mb-1 ${activeProject.title.includes("Files") ? 'text-[#00ff41]' : 'text-[#4a90e2]'}`}>
                 {activeProject.title}
               </h2>
-              <p className="text-white text-[10px] uppercase opacity-70 tracking-widest leading-tight max-w-[200px]">{activeProject.desc}</p>
+              <p className="text-white text-[8px] sm:text-[10px] uppercase opacity-70 tracking-widest leading-tight max-w-[140px] sm:max-w-[200px]">{activeProject.desc}</p>
             </div>
           </motion.div>
         )}
@@ -3344,31 +3357,31 @@ export default function App() {
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -50 }}
-            className="absolute left-12 top-1/2 -translate-y-1/2 z-[80] pointer-events-none"
+            className="absolute left-2 sm:left-12 top-1/2 -translate-y-1/2 z-[80] pointer-events-none"
           >
-            <div className="bg-black/90 border-4 border-[#00ff41] p-8 shadow-[12px_12px_0px_0px_rgba(0,255,65,0.2)] max-w-sm pointer-events-auto">
-              <h2 className="text-[#00ff41] text-2xl font-bold uppercase tracking-tighter mb-4">Sivashankaran</h2>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 bg-[#00ff41]" />
-                  <p className="text-white text-sm font-bold uppercase tracking-widest">IT Engineer</p>
+            <div className="bg-black/90 border-2 sm:border-4 border-[#00ff41] p-4 sm:p-8 shadow-[12px_12px_0px_0px_rgba(0,255,65,0.2)] max-w-[200px] sm:max-w-sm pointer-events-auto">
+              <h2 className="text-[#00ff41] text-base sm:text-2xl font-bold uppercase tracking-tighter mb-2 sm:mb-4">Sivashankaran</h2>
+              <div className="space-y-1.5 sm:space-y-3">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-[#00ff41]" />
+                  <p className="text-white text-[10px] sm:text-sm font-bold uppercase tracking-widest">IT Engineer</p>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 bg-[#00ff41]" />
-                  <p className="text-white text-sm font-bold uppercase tracking-widest">AI ENTHUSIAST</p>
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-[#00ff41]" />
+                  <p className="text-white text-[10px] sm:text-sm font-bold uppercase tracking-widest">AI ENTHUSIAST</p>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 bg-[#00ff41]" />
-                  <p className="text-white text-sm font-bold uppercase tracking-widest">Leader</p>
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-[#00ff41]" />
+                  <p className="text-white text-[10px] sm:text-sm font-bold uppercase tracking-widest">Leader</p>
                 </div>
               </div>
-              <p className="text-white/40 text-[10px] uppercase mt-8 tracking-widest mb-6">
+              <p className="text-white/40 text-[8px] sm:text-[10px] uppercase mt-4 sm:mt-8 tracking-widest mb-3 sm:mb-6">
                 "Building the future, one pixel at a time."
               </p>
               
               <button 
                 onClick={() => setFocusTarget('computer')}
-                className="w-full bg-[#00ff41] text-black py-3 px-4 font-bold text-xs uppercase tracking-widest hover:bg-white transition-colors border-b-4 border-r-4 border-green-900 active:border-0 active:translate-y-1 active:translate-x-1"
+                className="w-full bg-[#00ff41] text-black py-2 sm:py-3 px-3 sm:px-4 font-bold text-[9px] sm:text-xs uppercase tracking-widest hover:bg-white transition-colors border-b-4 border-r-4 border-green-900 active:border-0 active:translate-y-1 active:translate-x-1"
               >
                 Access my files to know more
               </button>
@@ -3410,38 +3423,38 @@ export default function App() {
 
       {/* Title and Instructions */}
       {!showDialogue && focusTarget === 'room' && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-center pointer-events-none">
-          <div className="mb-2 flex flex-col items-center gap-2">
-            <div className="flex items-center gap-6 mb-1">
-              <div className="flex items-center gap-4 pointer-events-auto">
-                <a href="https://in.linkedin.com/in/siva-shankaran" target="_blank" rel="noreferrer" className="w-8 h-8 rounded-full border border-white/20 bg-black/40 flex items-center justify-center hover:bg-[#0077b5] hover:border-[#0077b5] transition-all hover:scale-110 group" title="LinkedIn">
-                  <Linkedin size={14} className="text-white/60 group-hover:text-white" />
+        <div className="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 text-center pointer-events-none w-full px-2">
+          <div className="mb-1 sm:mb-2 flex flex-col items-center gap-1 sm:gap-2">
+            <div className="flex items-center gap-2 sm:gap-6 mb-0.5 sm:mb-1">
+              <div className="flex items-center gap-2 sm:gap-4 pointer-events-auto">
+                <a href="https://in.linkedin.com/in/siva-shankaran" target="_blank" rel="noreferrer" className="w-6 h-6 sm:w-8 sm:h-8 rounded-full border border-white/20 bg-black/40 flex items-center justify-center hover:bg-[#0077b5] hover:border-[#0077b5] transition-all hover:scale-110 group" title="LinkedIn">
+                  <Linkedin size={11} className="text-white/60 group-hover:text-white" />
                 </a>
-                <a href="https://github.com/Shivaspark" target="_blank" rel="noreferrer" className="w-8 h-8 rounded-full border border-white/20 bg-black/40 flex items-center justify-center hover:bg-[#333] hover:border-[#333] transition-all hover:scale-110 group" title="GitHub">
-                  <Github size={14} className="text-white/60 group-hover:text-white" />
+                <a href="https://github.com/Shivaspark" target="_blank" rel="noreferrer" className="w-6 h-6 sm:w-8 sm:h-8 rounded-full border border-white/20 bg-black/40 flex items-center justify-center hover:bg-[#333] hover:border-[#333] transition-all hover:scale-110 group" title="GitHub">
+                  <Github size={11} className="text-white/60 group-hover:text-white" />
                 </a>
               </div>
 
-              <h1 className="text-3xl font-bold tracking-[0.2em] uppercase animate-fluid whitespace-nowrap">SIVASHANKARAN</h1>
+              <h1 className="text-lg sm:text-3xl font-bold tracking-[0.1em] sm:tracking-[0.2em] uppercase animate-fluid whitespace-nowrap">SIVASHANKARAN</h1>
 
-              <div className="flex items-center gap-4 pointer-events-auto">
-                <a href="https://www.instagram.com/shiva_spark_/" target="_blank" rel="noreferrer" className="w-8 h-8 rounded-full border border-white/20 bg-black/40 flex items-center justify-center hover:bg-[#e4405f] hover:border-[#e4405f] transition-all hover:scale-110 group" title="Instagram">
-                  <Instagram size={14} className="text-white/60 group-hover:text-white" />
+              <div className="flex items-center gap-2 sm:gap-4 pointer-events-auto">
+                <a href="https://www.instagram.com/shiva_spark_/" target="_blank" rel="noreferrer" className="w-6 h-6 sm:w-8 sm:h-8 rounded-full border border-white/20 bg-black/40 flex items-center justify-center hover:bg-[#e4405f] hover:border-[#e4405f] transition-all hover:scale-110 group" title="Instagram">
+                  <Instagram size={11} className="text-white/60 group-hover:text-white" />
                 </a>
                 <button 
                   onClick={() => {
                     window.open('https://github.com/Shivaspark/My-3d-portfolio', '_blank');
                   }}
-                  className="w-8 h-8 rounded-full border border-white/20 bg-black/40 flex items-center justify-center hover:bg-[#ffc107] hover:border-[#ffc107] transition-all hover:scale-110 group"
+                  className="w-6 h-6 sm:w-8 sm:h-8 rounded-full border border-white/20 bg-black/40 flex items-center justify-center hover:bg-[#ffc107] hover:border-[#ffc107] transition-all hover:scale-110 group"
                   title="Star on GitHub"
                 >
-                  <Star size={14} className="text-white/60 group-hover:text-white" />
+                  <Star size={11} className="text-white/60 group-hover:text-white" />
                 </button>
               </div>
             </div>
             
-            <p className="text-[#00ff41] text-xs font-bold tracking-[0.3em] uppercase opacity-80 mb-2">AI ENTHUSIAST</p>
-            <p className="text-white text-[8px] tracking-widest uppercase opacity-40">EXPLORE MY DIGITAL SPACE TO KNOW MORE</p>
+            <p className="text-[#00ff41] text-[9px] sm:text-xs font-bold tracking-[0.2em] sm:tracking-[0.3em] uppercase opacity-80 mb-1 sm:mb-2">AI ENTHUSIAST</p>
+            <p className="text-white text-[7px] sm:text-[8px] tracking-widest uppercase opacity-40 hidden sm:block">EXPLORE MY DIGITAL SPACE TO KNOW MORE</p>
           </div>
         </div>
       )}
