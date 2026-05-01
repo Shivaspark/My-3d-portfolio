@@ -550,37 +550,34 @@ function ComputerScreenContent({
           ) : (
             <>
               {/* Desktop Icons Container */}
-              <div className="relative h-[1200px] w-full flex flex-col">
-                {/* Spark AI Promo Banner */}
-                <button 
-                  onClick={() => setOpenWindow('spark-ai')}
-                  className="w-full bg-[#00ff41]/10 border-y-4 border-[#00ff41]/20 py-24 flex items-center justify-center gap-16 group transition-all hover:bg-[#00ff41]/20 shadow-[inset_0_0_50px_rgba(0,255,65,0.1)] shrink-0"
-                >
-                  <div className="text-7xl animate-bounce">✨</div>
-                  <div className="flex flex-col items-center">
-                    <div className="text-[#00ff41] text-5xl font-black uppercase tracking-[0.3em] group-hover:scale-105 transition-transform text-center mb-4">
-                      Spark AI Online: "Ask me anything about Siva!"
+              <div className="relative h-[1200px] w-full flex flex-col pt-32">
+                {/* Glowing Spark AI Button at top */}
+                <div className="flex justify-center mb-16 px-48">
+                  <button 
+                    onClick={() => setOpenWindow('spark-ai')}
+                    className="group relative flex items-center gap-8 bg-black/80 px-16 py-12 rounded-full border-4 border-[#00ff41]/30 hover:border-[#00ff41] transition-all hover:scale-105 active:scale-95 shadow-[0_0_50px_rgba(0,255,65,0.1)] hover:shadow-[0_0_80px_rgba(0,255,65,0.3)]"
+                  >
+                    <div className="text-6xl animate-pulse">🤖</div>
+                    <div className="flex flex-col items-start translate-y-[-1px]">
+                      <span className="text-[#00ff41] text-4xl font-black uppercase tracking-[0.1em] group-hover:text-white transition-colors">Chat with Spark AI_</span>
+                      <span className="text-white/40 text-xl font-bold uppercase tracking-[0.3em]">Ask me anything about Siva</span>
                     </div>
-                    <div className="text-white/40 text-2xl font-bold uppercase tracking-[0.5em] group-hover:text-white transition-colors">
-                      TAP HERE TO START A CONVERSATION_
-                    </div>
-                  </div>
-                  <div className="text-7xl animate-bounce">✨</div>
-                </button>
+                  </button>
+                </div>
 
                 <div 
-                  className="p-48 flex flex-row flex-wrap gap-48 w-full h-full overflow-y-auto no-scrollbar content-start"
+                  className="flex-1 p-48 flex flex-row flex-wrap gap-48 w-full overflow-y-auto no-scrollbar content-start"
                 >
-                  {folders.map((folder) => (
+                  {folders.filter(f => f.id !== 'spark-ai').map((folder) => (
                     <button
                       key={folder.id}
                       onClick={() => setOpenWindow(folder.id)}
                       className="flex flex-col items-center group cursor-pointer w-[400px]"
                     >
-                      <div className={`text-[18rem] mb-12 group-hover:scale-110 transition-transform drop-shadow-[0_40px_80px_rgba(0,0,0,0.8)] ${folder.id === 'spark-ai' ? 'animate-pulse text-[#00ff41] drop-shadow-[0_0_40px_rgba(0,255,65,1)]' : ''}`}>
-                        {folder.id === 'spark-ai' ? '👾' : folder.icon}
+                      <div className="text-[18rem] mb-12 group-hover:scale-110 transition-transform drop-shadow-[0_40px_80px_rgba(0,0,0,0.8)]">
+                        {folder.icon}
                       </div>
-                      <span className={`text-4xl font-black text-white bg-black/80 px-16 py-8 rounded-full group-hover:bg-[#00ff41] group-hover:text-black transition-all whitespace-nowrap border-4 border-white/30 ${folder.id === 'spark-ai' ? 'shadow-[0_0_30px_rgba(0,255,65,0.8)]' : ''}`}>
+                      <span className="text-4xl font-black text-white bg-black/80 px-16 py-8 rounded-full group-hover:bg-[#00ff41] group-hover:text-black transition-all whitespace-nowrap border-4 border-white/30">
                         {folder.name}
                       </span>
                     </button>
