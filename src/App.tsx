@@ -237,9 +237,11 @@ RULES:
       const cleanText = aiResponse.replace(/\[NAVIGATE:\w+\]/, "").trim();
 
       setMessages(prev => [...prev, { role: 'ai', text: cleanText, navId }]);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Chat error:", error);
-      setMessages(prev => [...prev, { role: 'ai', text: "Error 404: Mainframe connection lost. Please reboot your query!" }]);
+      // Show actual error so we can diagnose — will be cleaned up once working
+      const errMsg = error?.message || error?.toString() || "Unknown error";
+      setMessages(prev => [...prev, { role: 'ai', text: `⚠️ DEBUG: ${errMsg}` }]);
     } finally {
       setIsTyping(false);
     }
