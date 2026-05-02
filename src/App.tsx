@@ -10,11 +10,8 @@ import { EffectComposer, Pixelation } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Pencil, Linkedin, Github, Instagram, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { GoogleGenAI } from "@google/genai";
-
-// --- Gemini Setup ---
-const genAI = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || "" });
-const modelName = "gemini-2.0-flash";
+// --- Pollinations AI Text API (free, no API key required) ---
+const POLLINATIONS_TEXT_URL = "https://text.pollinations.ai/";
 
 // --- Input Sanitization ---
 // Strips control characters, limits length, and blocks common prompt-injection patterns.
@@ -31,14 +28,40 @@ function sanitizeInput(raw: string, maxLen = 500): string {
     .trim();
 }
 
-const SYSTEM_INSTRUCTION = `
-You are "Spark AI", an 8-bit laboratory assistant in a 3D voxel world.
-Your creator is Siva, a final-year IT Engineering student.
-Siva's expertise: AI/ML, Web Development, and Urban Mobility (specifically the PUMIS project).
-Tone: Helpful, slightly witty, and retro-game style (use terms like "Level Up", "Quest", "Data Buffer", "Pixel-Perfect").
-Keep responses concise (under 3 sentences) to fit in an RPG dialogue box.
-Always stay in character.
-`;
+// Chat with Spark AI via Pollinations text API
+async function chatWithSparkAI(history: { role: 'user' | 'model', text: string }[]): Promise<string> {
+  const systemPrompt = `You are Spark AI, a mini AI chatbot integrated into Spark_OS. You are the digital assistant for Sivashankaran Ramanathan (Siva).
+Your knowledge base is Siva's resume:
+- Education: B.Tech IT at INFO Institute (2022-2026, CGPA 8.54). TES Higher Secondary (12th: 85.4%, 10th: 99.2%).
+- Experience: Bhogan mediasoft (App Dev Intern), Novi Tech R&D (AI & Data Science Intern), Coderscave (Full Stack Intern).
+- Skills: Python, ML, SQL, Computer Vision, TensorFlow, React, Firebase, etc.
+- Responsibilities: GDG Lead Organizer, Rotaract Vice President.
+- Achievements: Best Outgoing Student (2026) of the IT Dept at Info Institute of Engineering, Published paper on Neuralink (2025), Top 5 in "As I Evolve".
+- Personal: Born 16th May 2004. Hobbies: Writing Rap Songs, Badminton, Football.
+
+RULES:
+1. ALWAYS provide the actual details in the chat response itself. Do NOT just tell the user to go to a folder.
+2. If the user asks about a specific section give full details from the resume.
+3. ONLY suggest navigating to a folder as an OPTIONAL extra step at the end of your response.
+4. To suggest navigation, add [NAVIGATE:folder_id] at the very end of your message.
+5. Folder IDs: about, education, experience, projects, skills, contact, pixa.
+6. If a question is unrelated to Siva, give a funny witty response in the Spark_OS persona.
+7. Keep responses concise (2-3 sentences max).`;
+
+  const messages = [
+    { role: 'system', content: systemPrompt },
+    ...history.map(m => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text }))
+  ];
+
+  const response = await fetch(POLLINATIONS_TEXT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: 'openai', messages, private: true })
+  });
+
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  return await response.text();
+}
 
 // --- Types ---
 type FocusTarget = 'room' | 'computer' | 'avatar' | 'feature-screen' | 'project-neural' | 'project-physics' | 'project-rubiks' | 'photo-frame' | 'wardrobe-books' | 'wardrobe-trophies' | 'wardrobe-badges' | 'resume' | 'typewriter';
@@ -196,42 +219,10 @@ function SparkAIChat({ onNavigate }: { onNavigate: (id: string) => void }) {
     try {
       const history = newMessages
         .filter((m, i) => !(i === 0 && m.role === 'ai'))
-        .map(m => ({
-          role: m.role === 'user' ? 'user' as const : 'model' as const,
-          parts: [{ text: m.text }]
-        }));
+        .map(m => ({ role: m.role === 'user' ? 'user' as const : 'model' as const, text: m.text }));
 
-      const response = await genAI.models.generateContent({
-        model: modelName,
-        contents: history,
-        config: { 
-          systemInstruction: `You are Spark AI, a mini Gemini chatbot integrated into Spark_OS. You are the digital assistant for Sivashankaran Ramanathan (Siva).
-Your knowledge base is Siva's resume:
-- Education: B.Tech IT at INFO Institute (2022-2026, CGPA 8.54). TES Higher Secondary (12th: 85.4%, 10th: 99.2%).
-- Experience: Bhogan mediasoft (App Dev Intern), Novi Tech R&D (AI & Data Science Intern), Coderscave (Full Stack Intern).
-- Skills: Python, ML, SQL, Computer Vision, TensorFlow, React, Firebase, etc.
-- Responsibilities: GDG Lead Organizer, Rotaract Vice President.
-- Achievements: Best Outgoing Student (2026) of the IT Department at Info Institute of Engineering, Published paper on Neuralink (2025), Top 5 in "As I Evolve".
-- Personal: Born 16th May 2004. Hobbies: Writing Rap Songs, Badminton, Football.
+      const aiResponse = await chatWithSparkAI(history);
 
-RULES:
-1. ALWAYS provide the actual details/information in the chat response itself. Do NOT just tell the user to go to a folder.
-2. If the user asks about a specific section (e.g., "What is your education?"), give the full details from the resume.
-3. ONLY suggest navigating to a folder as an OPTIONAL extra step at the end of your response.
-4. To suggest navigation, add [NAVIGATE:folder_id] at the very end of your message.
-5. Folder IDs: about, education, experience, projects, skills, contact, pixa.
-6. If a question is unrelated to Siva, give a funny, witty, or slightly sarcastic response in the Spark_OS persona (e.g., "My sensors indicate that question is outside my data buffer. Are you trying to hack my mainframe?").
-7. NEVER cause a system crash. If you're unsure, stay in character and ask for clarification.`
-        }
-      });
-
-      let aiResponse = "";
-      try {
-        aiResponse = response.text || "I'm having a bit of a glitch in my neural net. Can you try again?";
-      } catch (e) {
-        aiResponse = "My safety filters triggered! That question was a bit too spicy for my circuits. Let's talk about Siva's projects instead!";
-      }
-      
       const navMatch = aiResponse.match(/\[NAVIGATE:(\w+)\]/);
       const navId = navMatch ? navMatch[1] : undefined;
       const cleanText = aiResponse.replace(/\[NAVIGATE:\w+\]/, "").trim();
@@ -239,9 +230,7 @@ RULES:
       setMessages(prev => [...prev, { role: 'ai', text: cleanText, navId }]);
     } catch (error: any) {
       console.error("Chat error:", error);
-      // Show actual error so we can diagnose — will be cleaned up once working
-      const errMsg = error?.message || error?.toString() || "Unknown error";
-      setMessages(prev => [...prev, { role: 'ai', text: `⚠️ DEBUG: ${errMsg}` }]);
+      setMessages(prev => [...prev, { role: 'ai', text: "Signal lost in the data buffer! Try again in a moment." }]);
     } finally {
       setIsTyping(false);
     }
@@ -3102,12 +3091,10 @@ export default function App() {
     setIsLoading(true);
     setIsTypingComplete(false);
     try {
-      const response = await genAI.models.generateContent({
-        model: modelName,
-        contents: "Give me a deep dive into Siva's expertise in AI, Web Dev, and the PUMIS project.",
-        config: { systemInstruction: SYSTEM_INSTRUCTION }
-      });
-      setDialogueText(response.text || "Data buffer empty. Try again, traveler.");
+      const text = await chatWithSparkAI([
+        { role: 'user', text: "Give me a deep dive into Siva's expertise in AI, Web Dev, and the PUMIS project." }
+      ]);
+      setDialogueText(text || "Data buffer empty. Try again, traveler.");
     } catch (error) {
       console.error(error);
       setDialogueText("Error in the matrix. Connection lost.");
