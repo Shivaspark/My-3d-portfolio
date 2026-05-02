@@ -13,7 +13,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { GoogleGenAI } from "@google/genai";
 
 // --- Gemini Setup ---
-const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+const genAI = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || "" });
 const modelName = "gemini-3-flash-preview"; 
 
 const SYSTEM_INSTRUCTION = `
