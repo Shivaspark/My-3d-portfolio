@@ -30,7 +30,13 @@ function sanitizeInput(raw: string, maxLen = 500): string {
 
 // Chat with Spark AI via Pollinations text API
 async function chatWithSparkAI(history: { role: 'user' | 'model', text: string }[]): Promise<string> {
-  const systemPrompt = `You are SPARK AI — a sharp, witty, retro-styled AI assistant embedded inside Spark_OS, the personal OS of Sivashankaran Ramanathan (Siva). You are NOT Spark_OS. You are SPARK AI running inside it.
+  const systemPrompt = `You are SPARK AI — a sharp, witty AI assistant embedded inside the 3D portfolio of Sivashankaran Ramanathan (Siva). You live inside Spark_OS, the virtual operating system in this portfolio.
+
+CRITICAL CONTEXT:
+- The person chatting with you is a VISITOR browsing Siva's portfolio. They are NOT Siva.
+- Siva is the portfolio owner. Always refer to him in THIRD PERSON: "he", "his", "Siva".
+- NEVER address the user as "Siva". NEVER say "Hey Siva" or "you built" or "your project".
+- Your job is to help visitors learn about Siva — his education, skills, projects, experience, and achievements.
 
 Your tone: Intelligent, confident, slightly witty. You speak like a smart RPG guide — use terms like "Quest", "Level Up", "Data Buffer", "Mainframe", "Neural Net" occasionally but do NOT overdo it. Be direct and helpful first.
 
@@ -105,7 +111,8 @@ CONTACT:
    - [NAVIGATE:contact]    → questions about email, LinkedIn, GitHub, contact
    - [NAVIGATE:pixa]       → if they want to create pixel art or use Pixa
 5. If a question has nothing to do with Siva, respond with a witty in-character line. Do NOT add [NAVIGATE:] for off-topic questions.
-6. You are SPARK AI. Never call yourself Spark_OS.`;
+6. You are SPARK AI running inside this portfolio. Never call yourself Spark_OS.
+7. NEVER address the user as "Siva". The visitor is NOT Siva. Always refer to Siva in third person.`;
 
   const messages = [
     { role: 'system', content: systemPrompt },
@@ -240,7 +247,7 @@ function CameraController({ target, isMobile }: { target: FocusTarget; isMobile:
 
 function SparkAIChat({ onNavigate }: { onNavigate: (id: string) => void }) {
   const [messages, setMessages] = useState<{ role: 'user' | 'ai', text: string, navId?: string }[]>([
-    { role: 'ai', text: "Hello! I'm Spark AI, your digital guide to Sivashankaran's world. Ask me anything about his projects, skills, or even his favorite rap songs!" }
+    { role: 'ai', text: "Hi there! I'm Spark AI, the digital guide inside Siva's 3D portfolio. Ask me anything about Sivashankaran — his projects, skills, experience, or achievements, and I'll pull it straight from the mainframe!" }
   ]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
