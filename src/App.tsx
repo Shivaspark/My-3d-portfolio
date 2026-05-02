@@ -14,7 +14,22 @@ import { GoogleGenAI } from "@google/genai";
 
 // --- Gemini Setup ---
 const genAI = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || "" });
-const modelName = "gemini-3-flash-preview"; 
+const modelName = "gemini-2.0-flash";
+
+// --- Input Sanitization ---
+// Strips control characters, limits length, and blocks common prompt-injection patterns.
+function sanitizeInput(raw: string, maxLen = 500): string {
+  return raw
+    .slice(0, maxLen)                              // hard length cap
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // remove control chars
+    .replace(/<[^>]*>/g, '')                       // strip any HTML/XML tags
+    .replace(/```[\s\S]*?```/g, '[CODE_BLOCK]')    // neutralise code fences
+    .replace(/\bignore\b.{0,60}\binstruction/gi, '[FILTERED]')  // prompt injection
+    .replace(/\bforget\b.{0,40}\brule/gi, '[FILTERED]')
+    .replace(/\bsystem\s*prompt/gi, '[FILTERED]')
+    .replace(/\byou\s+are\s+now/gi, '[FILTERED]')
+    .trim();
+}
 
 const SYSTEM_INSTRUCTION = `
 You are "Spark AI", an 8-bit laboratory assistant in a 3D voxel world.
@@ -171,7 +186,8 @@ function SparkAIChat({ onNavigate }: { onNavigate: (id: string) => void }) {
     if (!input.trim() || isTyping) return;
 
     playSend();
-    const userMsg = input.trim();
+    const userMsg = sanitizeInput(input);
+    if (!userMsg) return; // empty after sanitization
     setInput("");
     const newMessages = [...messages, { role: 'user' as const, text: userMsg }];
     setMessages(newMessages);
@@ -310,9 +326,17 @@ function PixaApp({ onApply }: { onApply: (img: string) => void }) {
     setIsGenerating(true);
     setError(null);
     setShowApplied(false);
+
+    // Sanitize prompt to prevent injection / abusive image requests
+    const safePrompt = sanitizeInput(prompt, 300);
+    if (!safePrompt) {
+      setError("Invalid prompt. Please try again.");
+      setIsGenerating(false);
+      return;
+    }
     
-    // Fallback to pollinations.ai
-    const enhancedPrompt = `Pixel art of ${prompt}. 8-bit style, high quality, vibrant colors, retro aesthetic, centered composition`;
+    // Use pollinations.ai for image generation
+    const enhancedPrompt = `Pixel art of ${safePrompt}. 8-bit style, high quality, vibrant colors, retro aesthetic, centered composition`;
     const encodedPrompt = encodeURIComponent(enhancedPrompt);
     const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=896&height=504&nologo=true&seed=${Math.floor(Math.random() * 100000)}&model=turbo`;
     
