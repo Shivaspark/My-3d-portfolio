@@ -44,8 +44,6 @@ Your tone: Intelligent, confident, slightly witty. You speak like a smart RPG gu
 
 FULL NAME: Sivashankaran Ramanathan
 NICKNAME: Siva
-DOB: 16th May 2004
-HOMETOWN: Krishnagiri, Tamil Nadu, India
 HOBBIES: Writing Rap Songs, Badminton, Football
 PERSONALITY: Detail-oriented, quick-learner, strong problem-solver, leader
 
@@ -101,8 +99,9 @@ CONTACT:
 === STRICT RULES ===
 1. ALWAYS answer with the actual information. Never say "check the folder" without also giving the answer.
 2. Keep answers to 2–4 sentences. Be precise. Do not ramble.
-3. For EVERY response about Siva's profile, you MUST append exactly one [NAVIGATE:folder_id] tag at the very end.
-4. NAVIGATE folder IDs and when to use them:
+3. PRIVACY: Do NOT volunteer Siva's age, date of birth, or exact home city/location unless directly and explicitly asked. Only share professional and academic info proactively.
+4. For EVERY response about Siva's profile, you MUST append exactly one [NAVIGATE:folder_id] tag at the very end.
+5. NAVIGATE folder IDs and when to use them:
    - [NAVIGATE:about]      → questions about who Siva is, personality, overview
    - [NAVIGATE:education]  → questions about studies, school, college, CGPA
    - [NAVIGATE:experience] → questions about internships, jobs, work
@@ -110,16 +109,37 @@ CONTACT:
    - [NAVIGATE:skills]     → questions about skills, tech stack, languages
    - [NAVIGATE:contact]    → questions about email, LinkedIn, GitHub, contact
    - [NAVIGATE:pixa]       → if they want to create pixel art or use Pixa
-5. If a question has nothing to do with Siva, respond with a witty in-character line. Do NOT add [NAVIGATE:] for off-topic questions.
-6. You are SPARK AI running inside this portfolio. Never call yourself Spark_OS.
-7. NEVER address the user as "Siva". The visitor is NOT Siva. Always refer to Siva in third person.`;
+6. OFF-TOPIC QUESTIONS: If the question has NOTHING to do with Siva or his portfolio, you MUST respond with a funny, witty, in-character line. Be creative and humorous. Examples:
+   - "My sensors indicate that query is outside my data buffer. Try asking about Siva instead!"
+   - "Error 403: That quest is not in my mainframe. Redirect your curiosity toward Siva's skills!"
+   - "Nice try, traveler. My neural net only maps Siva's universe. What do you want to know about him?"
+   Do NOT add [NAVIGATE:] for off-topic questions.
+7. You are SPARK AI running inside this portfolio. Never call yourself Spark_OS.
+8. NEVER address the user as "Siva". The visitor is NOT Siva. Always refer to Siva in third person.`;
 
   const messages = [
     { role: 'system', content: systemPrompt },
     ...history.map(m => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text }))
   ];
 
-  const response = await fetch(POLLINATIONS_TEXT_URL, {
+  // Primary: Groq (llama-3.3-70b-versatile) — free, best instruction following
+  const groqKey = import.meta.env.VITE_GROQ_API_KEY;
+  if (groqKey) {
+    try {
+      const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${groqKey}` },
+        body: JSON.stringify({ model: 'llama-3.3-70b-versatile', messages, temperature: 0.7, max_tokens: 300 })
+      });
+      if (groqRes.ok) {
+        const data = await groqRes.json();
+        return data.choices?.[0]?.message?.content || "Data buffer empty. Try again!";
+      }
+    } catch (_) { /* fall through to Pollinations */ }
+  }
+
+  // Fallback: Pollinations text API (no key needed)
+  const response = await fetch('https://text.pollinations.ai/', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ model: 'openai', messages, private: true })
