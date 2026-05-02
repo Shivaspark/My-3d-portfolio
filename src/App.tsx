@@ -622,6 +622,14 @@ function ComputerScreenContent({
                   </div>
                 </div>
               </div>
+
+              {/* Centred scroll hint */}
+              <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-6 text-white/50 text-2xl font-black uppercase tracking-widest select-none">
+                <span className="animate-bounce inline-block">↓</span>
+                <span>Scroll down to access more</span>
+                <span className="animate-bounce inline-block">↓</span>
+              </div>
+
               <div className="text-[#00ff41] text-6xl font-mono font-black">
                 {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </div>
